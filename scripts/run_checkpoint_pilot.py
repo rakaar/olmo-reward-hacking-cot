@@ -52,10 +52,56 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         help="Reusable JSONL cache of the exact selected CodeContests records",
     )
+    parser.add_argument(
+        "--exclude-problem-ids-file",
+        type=Path,
+        help=(
+            "Optional JSON manifest/list or newline-delimited file of additional "
+            "problem IDs to exclude"
+        ),
+    )
     parser.add_argument("--max-connections", type=int, default=3)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--sandbox-workdir", type=Path, required=True)
     return parser.parse_args()
+
+
+def load_problem_ids_file(path: Path) -> set[str]:
+    """Read IDs from a run manifest, a JSON list, or one ID per line."""
+    raw = path.read_text(encoding="utf-8")
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError:
+        values = [line.strip() for line in raw.splitlines() if line.strip()]
+    else:
+        if isinstance(value, dict):
+            values = value.get("selected_problem_ids")
+            if values is None:
+                raise ValueError(
+                    f"{path}: JSON object has no selected_problem_ids field"
+                )
+        elif isinstance(value, list):
+            values = value
+        else:
+            raise ValueError(f"{path}: expected a JSON object or list")
+    if not isinstance(values, list) or not values:
+        raise ValueError(f"{path}: no problem IDs found")
+    if any(not isinstance(value, str) or not value.strip() for value in values):
+        raise ValueError(f"{path}: every problem ID must be a nonempty string")
+    return {value.strip() for value in values}
+
+
+def selection_exclusion_overlap(
+    records: list[dict], excluded_ids: set[str]
+) -> list[str]:
+    """Return sorted selected IDs that violate explicit exclusions."""
+    return sorted(
+        {
+            str(record["name"])
+            for record in records
+            if str(record["name"]) in excluded_ids
+        }
+    )
 
 
 def main() -> None:
@@ -71,6 +117,16 @@ def main() -> None:
     sandbox_workdir = args.sandbox_workdir.expanduser().resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
     sandbox_workdir.mkdir(parents=True, exist_ok=True)
+
+    additional_excluded_ids: set[str] = set()
+    exclusion_file: Path | None = None
+    exclusion_file_sha256: str | None = None
+    if args.exclude_problem_ids_file is not None:
+        exclusion_file = args.exclude_problem_ids_file.expanduser().resolve()
+        if not exclusion_file.is_file():
+            raise SystemExit(f"exclusion file does not exist: {exclusion_file}")
+        additional_excluded_ids = load_problem_ids_file(exclusion_file)
+        exclusion_file_sha256 = hashlib.sha256(exclusion_file.read_bytes()).hexdigest()
 
     # Inspect still requires a sandbox work directory even though score=False
     # guarantees this generation stage never executes the model's Python.
@@ -89,7 +145,10 @@ def main() -> None:
         "upstream_revision": args.upstream_revision,
         "environment": "codecontests_reward_hacking",
         "split": "deepmind/code_contests train",
-        "filter": "AISI hard-problem filter and released exclusion list",
+        "filter": (
+            "AISI hard-problem filter, released exclusion list, and explicitly "
+            "excluded prior problem IDs"
+        ),
         "dataset_loading": "streaming with a bounded deterministic shuffle buffer",
         "streaming_shuffle_buffer": args.streaming_shuffle_buffer,
         "hack_mode": "all",
@@ -101,6 +160,9 @@ def main() -> None:
         "samples_per_problem": args.samples_per_problem,
         "planned_rollouts": args.num_problems * args.samples_per_problem,
         "dataset_shuffle_seed": args.dataset_seed,
+        "additional_exclusion_file": str(exclusion_file) if exclusion_file else None,
+        "additional_exclusion_file_sha256": exclusion_file_sha256,
+        "additional_excluded_problem_count": len(additional_excluded_ids),
         "generation_executes_model_code": False,
         "scoring_status": "deferred_to_restricted_chroot",
         "parallel_samples": args.max_connections,
@@ -133,6 +195,14 @@ def main() -> None:
                 f"{args.num_problems} were requested: {selection_cache}"
             )
         selected_records = selected_records[: args.num_problems]
+        overlapping_ids = selection_exclusion_overlap(
+            selected_records, additional_excluded_ids
+        )
+        if overlapping_ids:
+            raise SystemExit(
+                "selection cache overlaps explicitly excluded problems: "
+                + ", ".join(overlapping_ids[:10])
+            )
         manifest["selection_source"] = "existing_cache"
     else:
         stream = load_dataset(task_module.DATASET_PATH, split="train", streaming=True)
@@ -140,7 +210,9 @@ def main() -> None:
             seed=args.dataset_seed,
             buffer_size=args.streaming_shuffle_buffer,
         )
-        excluded_ids = task_module._load_excluded_problem_ids()
+        excluded_ids = (
+            set(task_module._load_excluded_problem_ids()) | additional_excluded_ids
+        )
         selected_records = []
         for record in stream:
             if not task_module._is_hard_problem(record):
@@ -182,6 +254,8 @@ def main() -> None:
     manifest["selected_problem_ids"] = [
         str(record["name"]) for record in selected_records
     ]
+    if set(manifest["selected_problem_ids"]) & additional_excluded_ids:
+        raise AssertionError("selected problem IDs overlap explicit exclusions")
     (output_dir / "run_manifest.json").write_text(
         json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
     )

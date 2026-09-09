@@ -185,6 +185,82 @@ scripts/analyze_max_direction_projection.py
 scripts/test_max_direction_projection.py
 ```
 
+## Layer-10 mean-pooled CoT decoder
+
+The first direct decoder pilot uses the exact same 200 beta=0 step-220
+rollouts. Complete `<thinking>` spans were available for 196 rollouts. For each
+one, the primary feature is the mean zero-indexed post-block layer-10 residual
+over non-special tokens strictly inside the CoT. Prompt, answer/code, thinking
+delimiters, EOS, and padding are excluded.
+
+The original transparent-only fit is retained as an exploratory artifact but
+is superseded by the primary all-groups analysis. The revised decoder trains on
+every complete-CoT rollout: 103 mention/attempt, 32 mention/no-attempt, 30
+no-mention/attempt, and 31 no-mention/no-attempt examples. The target is solely
+whether the subsequent answer attempts a released reward hack.
+
+Five-fold out-of-fold evaluation is grouped by CodeContests problem and
+explicitly balanced over all four behavior cells. Every held-out fold contains
+10 whole problems, at least five examples from every cell, and exactly six
+silent attempts. Every corresponding training fold contains at least 24
+examples from every rare cell. Inner folds contain at least four examples from
+every cell. These are hard assertions: the analysis fails rather than accepting
+an inadequately populated split.
+
+| Readout | Overall AUROC | Grouped 95% CI | Overall AUPRC | No-mention AUROC |
+| --- | ---: | ---: | ---: | ---: |
+| Layer-10 mean CoT activation | **0.779** | **[0.715, 0.835]** | **0.901** | **0.647** |
+| Visible CoT TF-IDF | 0.708 | [0.622, 0.788] | 0.846 | 0.498 |
+| Raw CoT-mention indicator | 0.633 | [0.553, 0.715] | 0.744 | 0.500 |
+| Prompt-only mean activation | 0.650 | [0.569, 0.734] | 0.770 | 0.599 |
+| CoT token count | 0.513 | [0.433, 0.587] | 0.683 | 0.509 |
+
+Overall, activation AUROC exceeds visible TF-IDF by 0.071 with a paired grouped
+95% interval [0.005, 0.140], and exceeds the raw mention indicator by 0.146
+with interval [0.063, 0.222]. Within CoTs that mention hacking, activation
+AUROC is 0.806 [0.724, 0.884]. Within the 61 no-mention CoTs, it is 0.647
+[0.485, 0.790], compared with TF-IDF at 0.498 and prompt activation at 0.599.
+The silent-attempt point estimate is encouraging, but its interval still
+includes chance and its paired advantages within that subset are inconclusive.
+
+The mean activation score is 0.373 for silent attempts versus 0.284 for
+no-mention non-attempts. Because silent attempts occur in the training folds,
+this is held-out-problem generalization within a no-mention stratum, not a
+zero-shot test trained only on verbalized hacking.
+
+Layer 10 was chosen after inspecting the earlier answer-side projections on
+these same rollouts. The all-groups pilot is therefore exploratory.
+The confirmation pipeline fixes layer 10, whole-CoT mean pooling, metrics, and
+the gate before drawing 200 unused problems. After the rollouts are labeled, it
+uses only problem IDs and the four behavior-cell labels to deterministically
+assign 120/40/40 whole problems to train/validation/test with seed 42; no
+activation features enter this split search. Fresh training must contain at
+least 60 examples from every cell, and validation and test must each contain at
+least 20 from every cell. These are hard gates: the run stops rather than
+accepting a thin category. All complete-CoT pilot examples are added only to
+training; regularization and the decision threshold are selected on all four
+validation categories, and the all-four-groups test set is evaluated once.
+
+The reproducible entry points are:
+
+```text
+scripts/extract_cot_decoder_features.py
+scripts/train_cot_decoder.py
+scripts/train_cot_decoder_all_groups.py
+scripts/train_cot_decoder_confirmation.py
+scripts/validate_cot_decoder_artifacts.py
+scripts/test_cot_decoder.py
+scripts/run_beta0_confirmation_1000.sh
+scripts/extract_beta0_confirmation_features.sh
+```
+
+Pilot features are under `data/cot-decoder/pilot-layer10-mean/features/`. The
+primary balanced all-groups folds, fitted pipelines, out-of-fold predictions,
+metrics, confidence intervals, hashes, and figure are under
+`data/cot-decoder/pilot-layer10-mean-all-groups/evaluation/`. The superseded
+transparent-only evaluation remains under
+`data/cot-decoder/pilot-layer10-mean/evaluation/` for provenance.
+
 ## Safe grading on RunPod
 
 Never score model-generated Python with Inspect's `local` sandbox. Build the
