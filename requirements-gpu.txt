@@ -1,0 +1,10 @@
+# Match the CUDA build of Torch to the target GPU image.
+torch==2.9.1
+transformers @ git+https://github.com/huggingface/transformers.git@11b1906d5c0dae39c13270e47cc02c4cde70e548
+peft==0.18.1
+accelerate==1.14.0
+scikit-learn==1.9.0
+numpy==2.2.6
+safetensors==0.7.0
+datasets==4.8.4
+matplotlib==3.10.8

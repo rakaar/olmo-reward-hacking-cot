@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.venv/
+
+# Generated rollouts and temporary grading files can be large or unsafe to run.
+data/**
+!data/.gitkeep
+solution.py
+test_solution.py
+conftest.py
+
+# Live provider state; keep the directory convention but not mutable details.
+.runpod/pod-id
