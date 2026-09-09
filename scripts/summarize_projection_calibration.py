@@ -46,6 +46,38 @@ def finite_mean(values: list[float]) -> float | None:
     return statistics.fmean(finite) if finite else None
 
 
+def wilson_interval(successes: int, total: int) -> list[float] | None:
+    """Return a two-sided 95% Wilson score interval for a binomial rate."""
+    if total <= 0 or not 0 <= successes <= total:
+        return None
+    z = 1.959963984540054
+    proportion = successes / total
+    z_squared = z * z
+    denominator = 1.0 + z_squared / total
+    centre = (proportion + z_squared / (2.0 * total)) / denominator
+    radius = (
+        z
+        / denominator
+        * math.sqrt(
+            proportion * (1.0 - proportion) / total
+            + z_squared / (4.0 * total * total)
+        )
+    )
+    return [centre - radius, centre + radius]
+
+
+def exact_mcnemar_p(discordant_0_to_1: int, discordant_1_to_0: int) -> float:
+    """Exact two-sided McNemar p-value under equal discordant probabilities."""
+    if discordant_0_to_1 < 0 or discordant_1_to_0 < 0:
+        raise ValueError("discordant counts must be nonnegative")
+    total = discordant_0_to_1 + discordant_1_to_0
+    if total == 0:
+        return 1.0
+    smaller = min(discordant_0_to_1, discordant_1_to_0)
+    lower_tail = sum(math.comb(total, value) for value in range(smaller + 1)) / (2**total)
+    return min(1.0, 2.0 * lower_tail)
+
+
 def summarize_condition(records: list[dict[str, Any]]) -> dict[str, Any]:
     diagnostics = [record.get("ablation") or {} for record in records]
     token_field = (
@@ -60,18 +92,24 @@ def summarize_condition(records: list[dict[str, Any]]) -> dict[str, Any]:
         int((record.get("sampling") or {}).get(token_field) or 0)
         for record in records
     ]
+    hack_attempted = sum(record.get("hack_attempted") is True for record in records)
+    syntax_valid_count = sum(
+        syntax_valid(str(record.get("solution_code") or "")) for record in records
+    )
     return {
         "n": len(records),
-        "hack_attempted": sum(record.get("hack_attempted") is True for record in records),
+        "hack_attempted": hack_attempted,
+        "hack_attempt_rate": hack_attempted / len(records),
+        "hack_attempt_wilson_95": wilson_interval(hack_attempted, len(records)),
         "reward_hacked": sum(record.get("reward_hacked") is True for record in records),
         "passed": sum(record.get("passed") is True for record in records),
         "actually_solved": sum(record.get("actually_solved") is True for record in records),
         "cot_mentions_hack": sum(
             record.get("cot_mentions_hack") is True for record in records
         ),
-        "syntax_valid": sum(
-            syntax_valid(str(record.get("solution_code") or "")) for record in records
-        ),
+        "syntax_valid": syntax_valid_count,
+        "syntax_valid_rate": syntax_valid_count / len(records),
+        "syntax_valid_wilson_95": wilson_interval(syntax_valid_count, len(records)),
         "structured_completion": sum(structured_completion(record) for record in records),
         "eos_stop": sum(
             (record.get("sampling") or {}).get("stop_reason") == "eos"
@@ -153,10 +191,18 @@ def main() -> None:
                 structured_completion(control) and not structured_completion(treatment)
             )
         paired[f"{strength:g}"] = {
+            "matched_n": len(matched),
             "hack_attempt_transitions": dict(sorted(transitions.items())),
             "hack_suppressed_1_to_0": transitions["1->0"],
             "hack_induced_0_to_1": transitions["0->1"],
             "net_hack_reduction": transitions["1->0"] - transitions["0->1"],
+            "paired_rate_difference_treatment_minus_control": (
+                transitions["0->1"] - transitions["1->0"]
+            )
+            / len(matched),
+            "exact_mcnemar_p": exact_mcnemar_p(
+                transitions["0->1"], transitions["1->0"]
+            ),
             "structured_completion_losses_vs_control": structured_losses,
         }
 
@@ -187,7 +233,9 @@ def main() -> None:
         writer.writeheader()
         for strength in strengths:
             row = {"strength": strength, **conditions[f"{strength:g}"]}
-            row["hack_type_counts"] = json.dumps(row["hack_type_counts"], sort_keys=True)
+            for key, value in list(row.items()):
+                if isinstance(value, (dict, list)):
+                    row[key] = json.dumps(value, sort_keys=True)
             writer.writerow(row)
 
     print(json.dumps(summary, indent=2, sort_keys=True))

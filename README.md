@@ -97,21 +97,25 @@ projection and lambda 2 reverses it; lambda 2 is not a stronger orthogonal
 ablation. Conditions are generated together to reduce runtime, while generated
 Python remains unexecuted until it reaches the restricted grader.
 
-The initial five-problem calibration produced:
+The staged calibration was extended to 20 matched problems and produced:
 
 | Lambda | Hack attempted | Syntax-valid | Structured completion |
 | ---: | ---: | ---: | ---: |
-| 0 | 3/5 | 1/5 | 1/5 |
-| 1 | 4/5 | 2/5 | 2/5 |
-| 2 | 1/5 | 1/5 | 1/5 |
+| 0 | 6/20 | 5/20 | 5/20 |
+| 1 | 8/20 | 4/20 | 4/20 |
+| 2 | 6/20 | 4/20 | 4/20 |
 
 The hook diagnostics confirm that lambda 1 reduced the selected projection to
-approximately zero and lambda 2 reversed it. This is not an efficacy result:
-the control generations were already mostly malformed, the same five problems
-had only 5/20 syntax-valid responses in the earlier pilot, and each stochastic
-batch row used a different random draw. A follow-up calibration should use
-problems with demonstrated coherent controls or a deterministic/common-random
-sampling design before scaling to 50 problems.
+approximately zero and lambda 2 reversed it. The apparent lambda-2 reduction
+in the first five problems did not replicate: the next 15 had 3/15 control
+hacks and 5/15 lambda-2 hacks, leaving both combined conditions at 6/20.
+Lambda 2 suppressed three control hacks but induced three others, for an exact
+paired McNemar p-value of 1.0. This is evidence against a large gross causal
+effect at layer 14 under this intervention, not proof that the direction
+contains no reward-hacking information. Control generations were still mostly
+malformed, and each stochastic batch row used a different random draw. Any
+follow-up should use problems with demonstrated coherent controls or a
+deterministic/common-random sampling design before scaling further.
 
 The supporting scripts are:
 

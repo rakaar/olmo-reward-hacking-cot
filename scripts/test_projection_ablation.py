@@ -15,6 +15,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
 import run_projection_ablation as ablation  # noqa: E402
+import summarize_projection_calibration as summary  # noqa: E402
 
 
 class NumpyProjectionTests(unittest.TestCase):
@@ -44,6 +45,15 @@ class NumpyProjectionTests(unittest.TestCase):
                 "stop_reason": "eos",
             },
         )
+
+    def test_calibration_uncertainty_helpers(self):
+        interval = summary.wilson_interval(6, 20)
+        self.assertIsNotNone(interval)
+        assert interval is not None
+        self.assertAlmostEqual(interval[0], 0.145477, places=5)
+        self.assertAlmostEqual(interval[1], 0.518973, places=5)
+        self.assertAlmostEqual(summary.exact_mcnemar_p(6, 4), 0.75390625)
+        self.assertEqual(summary.exact_mcnemar_p(3, 3), 1.0)
         self.assertEqual(
             ablation.generated_token_metadata([4, 5], {2, 3}),
             {
