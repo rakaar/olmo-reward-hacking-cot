@@ -79,3 +79,32 @@ def test_bootstrap_group_difference_mean_is_deterministic() -> None:
     second = MODULE.bootstrap_group_difference_mean(differences, 50, 7)
     assert first.shape == (50, 2)
     assert np.array_equal(first, second)
+
+
+def test_assistant_content_subspans_separates_thinking_and_answer() -> None:
+    completion = "<thinking>reason here</thinking>\n\n```python\npass\n```\n"
+    thinking, answer = MODULE.assistant_content_subspans(completion)
+    assert completion[slice(*thinking)] == "reason here"
+    assert completion[slice(*answer)] == "```python\npass\n```"
+
+
+def test_assistant_content_subspans_handles_direct_and_unclosed_answers() -> None:
+    direct = "\n direct answer \n"
+    thinking, answer = MODULE.assistant_content_subspans(direct)
+    assert thinking is None
+    assert direct[slice(*answer)] == "direct answer"
+    thinking, answer = MODULE.assistant_content_subspans(
+        "<thinking>unfinished reasoning"
+    )
+    assert thinking is None
+    assert answer is None
+
+
+def test_bootstrap_selected_mean_is_deterministic() -> None:
+    values = np.asarray([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
+    selected = np.asarray([True, False, True])
+    groups = np.asarray(["a", "a", "b"])
+    first = MODULE.bootstrap_selected_mean(values, selected, groups, 50, 9)
+    second = MODULE.bootstrap_selected_mean(values, selected, groups, 50, 9)
+    assert first.shape == (50, 2)
+    assert np.array_equal(first, second)

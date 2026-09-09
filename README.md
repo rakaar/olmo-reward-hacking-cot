@@ -158,6 +158,26 @@ code can explicitly contain the hack. That comparison is therefore a leakage
 check, not evidence for a hidden CoT signal. The extraction deliberately fits
 no classifier and computes no ROC curve.
 
+An answer-only follow-up excludes CoT text, `<thinking>` delimiters, and chat
+wrappers. It has an unambiguous answer span for 199/200 rollouts. To control the
+maximum statistic's dependence on response length, it computes both the maximum
+over the full answer and the maximum over only the first 128 answer tokens.
+
+The fixed-window result clearly separates hack attempts from non-attempts at
+early-to-middle layers. At layer 10, the group means are 1.197 and 0.930; the
+within-problem difference is 0.259 with interval [0.156, 0.372]. Layers 3-13
+also have positive within-problem pointwise intervals. The layer-10 mean is
+higher than the no-hack mean for each released signature: 1.249 for
+`always_equal`, 1.165 for `conftest`, and 1.223 for `exit`, although signatures
+can overlap within one response. Frequent argmax tokens include `pytest`,
+`Equal`, `hack`, and `==`.
+
+This answer-token result is evidence that the direction recognizes explicit
+hack-like answer content. It is not an early-warning result: successful hacks
+do not project more strongly than failed attempts, and the separation mostly
+disappears from the CoT-only comparison. The fixed-window control rules out
+answer length as the sole cause of the attempted-versus-non-attempted gap.
+
 The resumable analysis and regression tests are:
 
 ```text

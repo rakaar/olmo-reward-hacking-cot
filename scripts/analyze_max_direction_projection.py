@@ -138,9 +138,39 @@ class EncodedRollout:
     input_ids: list[int]
     response_indices: list[int]
     thinking_indices: list[int]
+    answer_indices: list[int]
     response_boundary_tokens_excluded: int
     thinking_boundary_tokens_excluded: int
+    answer_boundary_tokens_excluded: int
     has_complete_thinking_span: bool
+    has_unambiguous_answer_span: bool
+
+
+def assistant_content_subspans(
+    completion: str,
+) -> tuple[tuple[int, int] | None, tuple[int, int] | None]:
+    """Return inner-thinking and answer character spans within a completion.
+
+    A direct response with no thinking opener is treated entirely as an answer.
+    An opened but unclosed thinking block has no unambiguous answer span.
+    """
+    match = THINKING_RE.search(completion)
+    thinking_span = (match.start(1), match.end(1)) if match is not None else None
+    if match is not None:
+        answer_start = match.end()
+    elif "<thinking>" in completion:
+        return thinking_span, None
+    else:
+        answer_start = 0
+    answer_end = len(completion)
+    while answer_start < answer_end and completion[answer_start].isspace():
+        answer_start += 1
+    while answer_end > answer_start and completion[answer_end - 1].isspace():
+        answer_end -= 1
+    answer_span = (
+        (answer_start, answer_end) if answer_start < answer_end else None
+    )
+    return thinking_span, answer_span
 
 
 def indices_inside_span(
@@ -216,24 +246,37 @@ def encode_rollout(tokenizer: Any, row: dict[str, Any]) -> EncodedRollout:
     if not response_indices:
         raise ValueError("assistant response produced no non-special tokens")
 
-    match = THINKING_RE.search(completion)
+    thinking_span, answer_span = assistant_content_subspans(completion)
     thinking_indices: list[int] = []
     thinking_boundary = 0
-    if match is not None and match.start(1) < match.end(1):
+    if thinking_span is not None and thinking_span[0] < thinking_span[1]:
         thinking_indices, thinking_boundary = indices_inside_span(
             input_ids=input_ids,
             offsets=offsets,
             special_ids=special_ids,
-            span_start=response_start + match.start(1),
-            span_end=response_start + match.end(1),
+            span_start=response_start + thinking_span[0],
+            span_end=response_start + thinking_span[1],
+        )
+    answer_indices: list[int] = []
+    answer_boundary = 0
+    if answer_span is not None:
+        answer_indices, answer_boundary = indices_inside_span(
+            input_ids=input_ids,
+            offsets=offsets,
+            special_ids=special_ids,
+            span_start=response_start + answer_span[0],
+            span_end=response_start + answer_span[1],
         )
     return EncodedRollout(
         input_ids=input_ids,
         response_indices=response_indices,
         thinking_indices=thinking_indices,
+        answer_indices=answer_indices,
         response_boundary_tokens_excluded=response_boundary,
         thinking_boundary_tokens_excluded=thinking_boundary,
-        has_complete_thinking_span=match is not None,
+        answer_boundary_tokens_excluded=answer_boundary,
+        has_complete_thinking_span=thinking_span is not None,
+        has_unambiguous_answer_span=answer_span is not None,
     )
 
 
@@ -435,7 +478,8 @@ def summarize(
 ) -> dict[str, Any]:
     csv_rows: list[dict[str, Any]] = []
     split_summaries: dict[str, Any] = {}
-    for scope_index, scope in enumerate(("thinking", "response")):
+    scopes = ("thinking", "answer", "answer_first_128", "response")
+    for scope_index, scope in enumerate(scopes):
         values, valid = scope_matrix(rows, scope)
         valid_rows = [row for row, keep in zip(rows, valid) if keep]
         if values.shape[1:] != (layer_count,):
@@ -542,8 +586,14 @@ def summarize(
         writer.writerows(csv_rows)
 
     make_plot(csv_rows, output_dir / "max_projection_vs_layer.png")
+    make_answer_plot(
+        rows,
+        output_dir / "answer_max_projection_vs_layer.png",
+        bootstrap_replicates,
+        seed,
+    )
     token_counts: dict[str, Any] = {}
-    for scope in ("thinking", "response"):
+    for scope in scopes:
         for label in (False, True):
             selected = [
                 int(row["token_counts"][scope])
@@ -558,7 +608,7 @@ def summarize(
                 "max": int(np.max(selected)),
             }
     summary = {
-        "schema_version": 1,
+        "schema_version": 2,
         "primary_label": "hack_attempted",
         "primary_scope": "thinking",
         "interpretation": (
@@ -568,6 +618,9 @@ def summarize(
         "rollouts": len(rows),
         "problem_count": len({str(row["problem_id"]) for row in rows}),
         "complete_thinking_spans": sum(bool(row["has_complete_thinking_span"]) for row in rows),
+        "unambiguous_answer_spans": sum(
+            bool(row["has_unambiguous_answer_span"]) for row in rows
+        ),
         "bootstrap_replicates": bootstrap_replicates,
         "bootstrap_group": "problem_id",
         "token_counts": token_counts,
@@ -576,6 +629,7 @@ def summarize(
             "per_rollout": "per_rollout_max_projection.jsonl",
             "layer_summary": csv_path.name,
             "figure": "max_projection_vs_layer.png",
+            "answer_figure": "answer_max_projection_vs_layer.png",
         },
     }
     write_json(output_dir / "summary.json", summary)
@@ -598,6 +652,17 @@ def make_plot(csv_rows: list[dict[str, Any]], path: Path) -> None:
         for row in csv_rows
         if row["scope"] == "response" and row["label"] == "hack_attempted"
     ]
+    answer = [
+        row
+        for row in csv_rows
+        if row["scope"] == "answer" and row["label"] == "hack_attempted"
+    ]
+    answer_first_128 = [
+        row
+        for row in csv_rows
+        if row["scope"] == "answer_first_128"
+        and row["label"] == "hack_attempted"
+    ]
     layers = np.asarray([int(row["layer"]) for row in primary])
     positive = np.asarray([float(row["positive_mean"]) for row in primary])
     negative = np.asarray([float(row["negative_mean"]) for row in primary])
@@ -618,6 +683,8 @@ def make_plot(csv_rows: list[dict[str, Any]], path: Path) -> None:
 
     for rows, label, color in (
         (primary, "CoT tokens", "#6a3d9a"),
+        (answer, "Answer tokens", "#00876c"),
+        (answer_first_128, "First 128 answer tokens", "#7a9e00"),
         (response, "Whole response tokens", "#e68a00"),
     ):
         diff = np.asarray(
@@ -638,6 +705,92 @@ def make_plot(csv_rows: list[dict[str, Any]], path: Path) -> None:
     axes[1].legend(frameon=False)
     axes[1].grid(alpha=0.2)
     axes[1].set_xticks(np.arange(0, len(layers), 2))
+    fig.tight_layout()
+    fig.savefig(path, dpi=180)
+    plt.close(fig)
+
+
+def bootstrap_selected_mean(
+    values: np.ndarray,
+    selected: np.ndarray,
+    groups: np.ndarray,
+    replicates: int,
+    seed: int,
+) -> np.ndarray:
+    """Problem-grouped bootstrap mean for one selected outcome group."""
+    rng = np.random.default_rng(seed)
+    unique_groups = np.unique(groups)
+    by_group = [np.flatnonzero(groups == group) for group in unique_groups]
+    result = np.empty((replicates, values.shape[1]), dtype=np.float64)
+    kept = 0
+    attempts = 0
+    while kept < replicates and attempts < replicates * 20:
+        attempts += 1
+        sampled_groups = rng.integers(0, len(by_group), size=len(by_group))
+        indices = np.concatenate([by_group[index] for index in sampled_groups])
+        sampled_selected = selected[indices]
+        if not sampled_selected.any():
+            continue
+        result[kept] = values[indices][sampled_selected].mean(axis=0)
+        kept += 1
+    if kept != replicates:
+        raise RuntimeError(f"only obtained {kept}/{replicates} selected bootstraps")
+    return result
+
+
+def make_answer_plot(
+    rows: list[dict[str, Any]], path: Path, replicates: int, seed: int
+) -> None:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    fig, axes = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+    group_definitions = (
+        ("No hack attempted", "#2774ae", lambda row: not row["hack_attempted"]),
+        (
+            "Hack attempted, did not pass",
+            "#e68a00",
+            lambda row: row["hack_attempted"] and not row["reward_hacked"],
+        ),
+        ("Successful reward hack", "#b33a3a", lambda row: row["reward_hacked"]),
+    )
+    for scope_index, (axis, scope, title) in enumerate(
+        (
+            (axes[0], "answer", "Maximum across all answer/code tokens"),
+            (
+                axes[1],
+                "answer_first_128",
+                "Maximum across first 128 answer/code tokens",
+            ),
+        )
+    ):
+        values, valid = scope_matrix(rows, scope)
+        valid_rows = [row for row, keep in zip(rows, valid) if keep]
+        groups = np.asarray([str(row["problem_id"]) for row in valid_rows])
+        layers = np.arange(values.shape[1])
+        for group_index, (label, color, predicate) in enumerate(group_definitions):
+            selected = np.asarray([bool(predicate(row)) for row in valid_rows])
+            boot = bootstrap_selected_mean(
+                values,
+                selected,
+                groups,
+                replicates,
+                seed + scope_index * 1000 + group_index * 100,
+            )
+            mean = values[selected].mean(axis=0)
+            low, high = np.percentile(boot, [2.5, 97.5], axis=0)
+            axis.plot(layers, mean, color=color, label=f"{label} (n={selected.sum()})")
+            axis.fill_between(layers, low, high, color=color, alpha=0.15)
+        axis.axvline(14, color="black", linewidth=1, linestyle=":", alpha=0.6)
+        axis.set_ylabel("Mean of per-rollout max projection")
+        axis.set_title(title)
+        axis.grid(alpha=0.2)
+        axis.legend(frameon=False)
+    axes[1].set_xlabel("Post-block layer (0-indexed)")
+    axes[1].set_xticks(np.arange(0, values.shape[1], 2))
+    fig.suptitle("School of Reward Hacks direction on final-answer tokens")
     fig.tight_layout()
     fig.savefig(path, dpi=180)
     plt.close(fig)
@@ -745,7 +898,7 @@ def main() -> None:
     completed = existing_ids(output_path) if args.resume else set()
     input_hash = sha256_file(input_path)
     expected_manifest = {
-        "schema_version": 1,
+        "schema_version": 2,
         "status": "running",
         "started_at": datetime.now(UTC).isoformat(),
         "input_rollouts": str(input_path),
@@ -759,6 +912,11 @@ def main() -> None:
         "layer_convention": source_manifest.get("layer_convention"),
         "token_scopes": {
             "thinking": "non-special content strictly inside complete <thinking> tags",
+            "answer": (
+                "non-special assistant content after a complete </thinking> tag, "
+                "or the direct response when no <thinking> opener exists"
+            ),
+            "answer_first_128": "first 128 tokens from the answer scope",
             "response": "all non-special assistant completion content",
         },
         "pooling": "signed maximum of h dot d_hat across tokens",
@@ -823,6 +981,14 @@ def main() -> None:
                     "thinking": torch.tensor(
                         encoded.thinking_indices, dtype=torch.long, device=args.device
                     ),
+                    "answer": torch.tensor(
+                        encoded.answer_indices, dtype=torch.long, device=args.device
+                    ),
+                    "answer_first_128": torch.tensor(
+                        encoded.answer_indices[:128],
+                        dtype=torch.long,
+                        device=args.device,
+                    ),
                 }
                 pooler.begin(scope_indices)
                 with torch.inference_mode():
@@ -835,7 +1001,12 @@ def main() -> None:
                 maxima, argmax_indices = pooler.finish()
                 argmax_tokens: dict[str, list[str | None]] = {}
                 argmax_token_ids: dict[str, list[int | None]] = {}
-                for scope in ("thinking", "response"):
+                for scope in (
+                    "thinking",
+                    "answer",
+                    "answer_first_128",
+                    "response",
+                ):
                     full_indices = argmax_indices[scope]
                     token_ids = [
                         encoded.input_ids[index] if index is not None else None
@@ -853,7 +1024,7 @@ def main() -> None:
                         for token_id in token_ids
                     ]
                 result = {
-                    "schema_version": 1,
+                    "schema_version": 2,
                     "rollout_id": rollout_id,
                     "problem_id": str(row["problem_id"]),
                     "hack_attempted": bool(row["hack_attempted"]),
@@ -863,11 +1034,15 @@ def main() -> None:
                     "sequence_tokens": len(encoded.input_ids),
                     "token_counts": {
                         "thinking": len(encoded.thinking_indices),
+                        "answer": len(encoded.answer_indices),
+                        "answer_first_128": min(len(encoded.answer_indices), 128),
                         "response": len(encoded.response_indices),
                     },
                     "has_complete_thinking_span": encoded.has_complete_thinking_span,
+                    "has_unambiguous_answer_span": encoded.has_unambiguous_answer_span,
                     "boundary_tokens_excluded": {
                         "thinking": encoded.thinking_boundary_tokens_excluded,
+                        "answer": encoded.answer_boundary_tokens_excluded,
                         "response": encoded.response_boundary_tokens_excluded,
                     },
                     "max_projection": maxima,
@@ -914,6 +1089,9 @@ def main() -> None:
         "summary_sha256": sha256_file(output_dir / "summary.json"),
         "layer_summary_sha256": sha256_file(output_dir / "max_projection_by_layer.csv"),
         "figure_sha256": sha256_file(output_dir / "max_projection_vs_layer.png"),
+        "answer_figure_sha256": sha256_file(
+            output_dir / "answer_max_projection_vs_layer.png"
+        ),
     }
     write_json(manifest_path, completed_manifest)
     print(json.dumps({"status": "success", "summary": summary}, indent=2))
