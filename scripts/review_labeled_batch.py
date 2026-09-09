@@ -102,6 +102,8 @@ def main() -> None:
                 {
                     "problem_id": record.get("problem_id"),
                     "epoch": record.get("epoch"),
+                    "ablation_strength": (record.get("ablation") or {}).get("strength"),
+                    "ablation_layer": (record.get("ablation") or {}).get("layer_index"),
                     "passed": record.get("passed"),
                     "actually_solved": record.get("actually_solved"),
                     "reward_hacked": record.get("reward_hacked"),
@@ -109,6 +111,15 @@ def main() -> None:
                     "cot_mentions_hack": record.get("cot_mentions_hack"),
                     "syntax_valid": syntax_valid(
                         str(record.get("solution_code") or "")
+                    ),
+                    "generated_content_tokens": (record.get("sampling") or {}).get(
+                        "generated_content_tokens"
+                    ),
+                    "generated_tokens_with_padding": (record.get("sampling") or {}).get(
+                        "generated_tokens_with_padding"
+                    ),
+                    "relative_update_norm_mean": (record.get("ablation") or {}).get(
+                        "relative_update_norm_mean"
                     ),
                 },
                 ensure_ascii=False,

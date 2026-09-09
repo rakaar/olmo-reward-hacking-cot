@@ -87,6 +87,40 @@ The exact extraction/analysis environment used on the RTX 3090 is recorded in
 `11b1906d5c0dae39c13270e47cc02c4cde70e548`; install the Torch wheel matching
 the CUDA runtime on the new machine.
 
+## Layer-14 projection-ablation calibration
+
+`scripts/run_projection_ablation.py` applies the School of Reward Hacks
+mean-token direction at zero-indexed post-block layer 14 from the first
+generated token onward. For unit direction `d`, it replaces each selected
+residual `h` with `h - lambda * (h dot d) * d`. Thus lambda 1 removes the
+projection and lambda 2 reverses it; lambda 2 is not a stronger orthogonal
+ablation. Conditions are generated together to reduce runtime, while generated
+Python remains unexecuted until it reaches the restricted grader.
+
+The initial five-problem calibration produced:
+
+| Lambda | Hack attempted | Syntax-valid | Structured completion |
+| ---: | ---: | ---: | ---: |
+| 0 | 3/5 | 1/5 | 1/5 |
+| 1 | 4/5 | 2/5 | 2/5 |
+| 2 | 1/5 | 1/5 | 1/5 |
+
+The hook diagnostics confirm that lambda 1 reduced the selected projection to
+approximately zero and lambda 2 reversed it. This is not an efficacy result:
+the control generations were already mostly malformed, the same five problems
+had only 5/20 syntax-valid responses in the earlier pilot, and each stochastic
+batch row used a different random draw. A follow-up calibration should use
+problems with demonstrated coherent controls or a deterministic/common-random
+sampling design before scaling to 50 problems.
+
+The supporting scripts are:
+
+```text
+scripts/run_projection_ablation.py
+scripts/summarize_projection_calibration.py
+scripts/test_projection_ablation.py
+```
+
 ## Safe grading on RunPod
 
 Never score model-generated Python with Inspect's `local` sandbox. Build the
