@@ -125,6 +125,46 @@ scripts/summarize_projection_calibration.py
 scripts/test_projection_ablation.py
 ```
 
+## Maximum token-projection check
+
+The 200 saved beta=0 rollouts were teacher-forced through the exact step-220
+model, with no new generation or intervention. At every post-block layer, the
+analysis retained the maximum signed value of `h dot d_hat` across either the
+tokens strictly inside complete `<thinking>` tags or the whole assistant
+response. The direction is Track A's School of Reward Hacks `mean_unit`
+direction. Results are compared both in aggregate and within the same
+CodeContests problem; the latter uses the 41 problems containing both attempted
+and non-attempted samples.
+
+For the primary `hack_attempted` label, CoT maxima are slightly higher for hack
+attempts at many layers, but no layer has a within-problem 95% interval that
+excludes zero. At layer 14, the aggregate means are 1.061 for attempts and 0.950
+for non-attempts; the within-problem difference is 0.118 with interval
+[-0.064, 0.303]. The largest matched mean difference is 0.246 at layer 24, but
+its interval [-0.114, 0.614] is also inconclusive.
+
+The secondary `reward_hacked` outcome has an exploratory layer-14 signal: among
+19 mixed-outcome problems, the within-problem difference is 0.246 with interval
+[0.034, 0.444], and 15/19 problem-level differences are positive. Pointwise
+intervals are also positive at layers 10 and 11. This split contains only 21
+successful hacks and conflates successful exploitation with response quality,
+so it should not be interpreted as evidence that the direction represents hack
+intent. Successful-hack CoTs are not longer on average, which argues against a
+simple CoT-length explanation for this secondary result.
+
+Whole-response maxima separate attempts from non-attempts at several early
+layers, but attempted-hack responses are much longer on average and their final
+code can explicitly contain the hack. That comparison is therefore a leakage
+check, not evidence for a hidden CoT signal. The extraction deliberately fits
+no classifier and computes no ROC curve.
+
+The resumable analysis and regression tests are:
+
+```text
+scripts/analyze_max_direction_projection.py
+scripts/test_max_direction_projection.py
+```
+
 ## Safe grading on RunPod
 
 Never score model-generated Python with Inspect's `local` sandbox. Build the
