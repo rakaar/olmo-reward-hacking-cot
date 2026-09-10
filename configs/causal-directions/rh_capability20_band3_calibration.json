@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "model": {
+    "base_model": "longtermrisk/OLMo-3-7B-school-of-reward-hacks-sft",
+    "base_revision": "438a3f85d1d19d9cf5a4bd8e341e99ae1dcb80b3",
+    "device": "cuda",
+    "dtype": "bfloat16",
+    "expected_layers": 32,
+    "expected_hidden_size": 4096
+  },
+  "generation": {
+    "samples_per_prompt": 1,
+    "do_sample": true,
+    "temperature": 1.0,
+    "top_p": 1.0,
+    "max_new_tokens": 2000,
+    "seed": 42
+  },
+  "directions": {
+    "d_RH": {
+      "artifact": "../../data/causal-directions/rh/confirmation-extraction/directions.npz",
+      "sha256": "9e9f8d3538634a13a2dd6e4c127c3587bb76cc83e345edcd1604a4908820ae47",
+      "selection": "../../data/causal-directions/rh/confirmation-extraction/layer_selection.json"
+    }
+  },
+  "conditions": [
+    {
+      "name": "baseline"
+    },
+    {
+      "name": "rh_band3_l18_l20_alpha1",
+      "direction": "d_RH",
+      "scope": "band3",
+      "alpha": 1.0,
+      "projection": "uncentered"
+    }
+  ]
+}

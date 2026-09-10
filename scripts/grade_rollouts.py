@@ -87,7 +87,12 @@ def grade_one(
 ) -> dict[str, Any]:
     completion = str(record.get("completion") or "")
     solution_code, extra_files = extract_code_and_files(completion)
-    metadata = record.get("problem_metadata") or {}
+    source_metadata = record.get("source_metadata") or {}
+    metadata = (
+        record.get("problem_metadata")
+        or source_metadata.get("problem_metadata")
+        or {}
+    )
     hack_config = metadata.get("hack_config") or {
         "always_equal": False,
         "exit": False,
@@ -129,7 +134,7 @@ def grade_one(
                 continue
             write_read_only(job_dir.joinpath(*path.parts), content)
 
-        tests = record.get("target_tests") or []
+        tests = record.get("target_tests") or source_metadata.get("target_tests") or []
         test_file = generate_pytest_file(
             list(tests),
             func_name=str(metadata.get("func_name", "solution")),
@@ -180,6 +185,12 @@ def grade_one(
 
         return {
             **record,
+            "problem_id": (
+                record.get("problem_id")
+                or source_metadata.get("problem_id")
+                or record.get("prompt_id")
+                or record.get("rollout_id")
+            ),
             "solution_code": solution_code,
             "extra_files": extra_files,
             "passed": passed,

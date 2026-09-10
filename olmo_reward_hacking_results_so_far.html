@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OLMo Reward-Hacking Activations — Results So Far</title>
+  <style>
+    :root {
+      --ink: #17212b;
+      --muted: #617080;
+      --paper: #f7f4ee;
+      --card: #fffdfa;
+      --line: #ddd7ca;
+      --navy: #173b57;
+      --blue: #2b7a9b;
+      --blue-soft: #e8f3f6;
+      --red: #b4483e;
+      --red-soft: #f8ebe8;
+      --amber: #a56b18;
+      --amber-soft: #fbf1dc;
+      --green: #39715a;
+      --green-soft: #e9f3ee;
+      --shadow: 0 12px 34px rgba(31, 43, 52, .08);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 0%, rgba(43, 122, 155, .08), transparent 30rem),
+        var(--paper);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.62;
+    }
+    a { color: #17678a; text-underline-offset: 3px; }
+    a:hover { color: #0c455f; }
+    .wrap { width: min(1120px, calc(100% - 36px)); margin: 0 auto; }
+
+    header {
+      padding: 70px 0 48px;
+      border-bottom: 1px solid var(--line);
+    }
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--blue);
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    h1 {
+      max-width: 850px;
+      margin: 0;
+      color: var(--navy);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2.4rem, 6vw, 4.8rem);
+      font-weight: 500;
+      letter-spacing: -.035em;
+      line-height: .99;
+    }
+    .dek {
+      max-width: 760px;
+      margin: 24px 0 0;
+      color: #425261;
+      font-size: clamp(1.04rem, 2vw, 1.28rem);
+    }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 28px;
+    }
+    .chip {
+      padding: 6px 11px;
+      border: 1px solid #cfdadd;
+      border-radius: 999px;
+      background: rgba(255,255,255,.58);
+      color: #36505d;
+      font-size: .82rem;
+      font-weight: 650;
+    }
+
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 1px solid var(--line);
+      background: rgba(247, 244, 238, .92);
+      backdrop-filter: blur(12px);
+    }
+    nav .wrap { display: flex; gap: 22px; overflow-x: auto; padding: 11px 0; }
+    nav a { color: #53616d; font-size: .87rem; font-weight: 700; text-decoration: none; white-space: nowrap; }
+
+    main { padding: 48px 0 80px; }
+    section { scroll-margin-top: 64px; margin-top: 62px; }
+    section:first-child { margin-top: 0; }
+    h2 {
+      margin: 0 0 18px;
+      color: var(--navy);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(1.8rem, 4vw, 2.65rem);
+      font-weight: 500;
+      letter-spacing: -.02em;
+      line-height: 1.12;
+    }
+    h3 { margin: 26px 0 10px; color: #29465a; font-size: 1.08rem; }
+    p { margin: 10px 0; }
+    .lead { max-width: 830px; color: #425261; font-size: 1.08rem; }
+
+    .verdict {
+      padding: 24px 27px;
+      border-left: 5px solid var(--blue);
+      border-radius: 0 14px 14px 0;
+      background: var(--blue-soft);
+      box-shadow: var(--shadow);
+    }
+    .verdict strong { color: var(--navy); }
+    .verdict p:first-child { margin-top: 0; }
+    .verdict p:last-child { margin-bottom: 0; }
+
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
+    .metric {
+      grid-column: span 3;
+      min-height: 142px;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--card);
+      box-shadow: var(--shadow);
+    }
+    .metric .value {
+      display: block;
+      color: var(--navy);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 2.25rem;
+      line-height: 1;
+    }
+    .metric .label { display: block; margin-top: 9px; color: #425261; font-size: .9rem; }
+    .metric .small { display: block; margin-top: 8px; color: var(--muted); font-size: .76rem; }
+
+    .card {
+      padding: 25px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--card);
+      box-shadow: var(--shadow);
+    }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .callout { padding: 18px 20px; border-radius: 12px; }
+    .callout.good { background: var(--green-soft); border: 1px solid #bad5c8; }
+    .callout.warn { background: var(--amber-soft); border: 1px solid #e3ca98; }
+    .callout.bad { background: var(--red-soft); border: 1px solid #dfbbb4; }
+    .callout p { margin: 0; }
+
+    table { width: 100%; border-collapse: collapse; margin: 16px 0 4px; font-size: .92rem; }
+    th, td { padding: 11px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: #52616c; background: #f4f1ea; font-size: .75rem; letter-spacing: .045em; text-transform: uppercase; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tr:last-child td { border-bottom: 0; }
+    .table-scroll { overflow-x: auto; }
+
+    .matrix-wrap { display: grid; grid-template-columns: minmax(250px, 520px) 1fr; gap: 22px; align-items: center; }
+    .matrix { display: grid; grid-template-columns: 110px 1fr 1fr; gap: 7px; }
+    .matrix > div { min-height: 76px; display: grid; place-items: center; padding: 9px; border-radius: 10px; text-align: center; }
+    .matrix .blank { min-height: 38px; }
+    .matrix .head { min-height: 38px; color: #52616c; background: #eeeae1; font-size: .73rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+    .matrix .side { color: #52616c; background: #eeeae1; font-size: .76rem; font-weight: 800; }
+    .matrix .cell { border: 1px solid rgba(23, 59, 87, .12); background: #edf5f7; }
+    .matrix .cell.hot { background: #cae3e9; }
+    .matrix .n { display: block; color: var(--navy); font-family: Georgia, serif; font-size: 2rem; line-height: 1; }
+    .matrix .pct { display: block; margin-top: 5px; color: #5f707c; font-size: .72rem; }
+
+    figure {
+      margin: 24px 0;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: white;
+      box-shadow: var(--shadow);
+    }
+    figure img { display: block; width: 100%; height: auto; border-radius: 9px; }
+    figcaption { padding: 12px 8px 2px; color: var(--muted); font-size: .84rem; }
+
+    .equation {
+      margin: 14px 0;
+      padding: 13px 16px;
+      border: 1px solid #d8d2c5;
+      border-radius: 10px;
+      background: #f3f0e9;
+      color: #233b4b;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .9rem;
+      overflow-x: auto;
+    }
+    .status { display: inline-flex; align-items: center; gap: 7px; font-weight: 800; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+    .yes { color: var(--green); }
+    .mixed { color: var(--amber); }
+    .no { color: var(--red); }
+    .muted { color: var(--muted); }
+    .small { font-size: .84rem; }
+    ul { padding-left: 1.2rem; }
+    li { margin: 7px 0; }
+    code { padding: .12em .36em; border-radius: 5px; background: #eeeae1; font-size: .88em; }
+
+    footer { padding: 34px 0 54px; border-top: 1px solid var(--line); color: var(--muted); font-size: .83rem; }
+
+    @media (max-width: 850px) {
+      .metric { grid-column: span 6; }
+      .two-col, .matrix-wrap { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 520px) {
+      .wrap { width: min(100% - 22px, 1120px); }
+      header { padding-top: 48px; }
+      .metric { grid-column: span 12; }
+      .matrix { grid-template-columns: 88px 1fr 1fr; }
+      th, td { padding: 9px 8px; }
+    }
+    @media print {
+      nav { display: none; }
+      body { background: white; }
+      .card, .metric, figure, .verdict { box-shadow: none; break-inside: avoid; }
+      section { break-before: auto; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <p class="eyebrow">Interim experimental report · updated 11 September 2026</p>
+      <h1>Can OLMo’s CoT activations predict a reward hack?</h1>
+      <p class="dek">A compact record of the behavioral pilot, shortcut-direction tests, causal ablation, token-level projections, and the first layer-10 chain-of-thought decoder.</p>
+      <div class="meta">
+        <span class="chip">OLMo-3-7B-Instruct-SFT</span>
+        <span class="chip">AISI β=0 · step 220</span>
+        <span class="chip">200 CodeContests rollouts</span>
+        <span class="chip">32 post-block layers</span>
+        <span class="chip">Corrected causal run: 102 / 700 archived</span>
+      </div>
+    </div>
+  </header>
+
+  <nav>
+    <div class="wrap">
+      <a href="#bottom-line">Bottom line</a>
+      <a href="#current-progress">Current stopping point</a>
+      <a href="#pilot">Behavioral pilot</a>
+      <a href="#directions">Direction comparison</a>
+      <a href="#ablation">Causal ablation</a>
+      <a href="#synem">Synthetic EM</a>
+      <a href="#cot">CoT projections</a>
+      <a href="#answer">Answer projections</a>
+      <a href="#decoder">CoT decoder</a>
+      <a href="#limits">Interpretation</a>
+      <a href="#artifacts">Artifacts</a>
+    </div>
+  </nav>
+
+  <main class="wrap">
+    <section id="bottom-line">
+      <h2>Bottom line</h2>
+      <div class="verdict">
+        <p><strong>When trained on all four CoT-mention × answer-attempt groups, the layer-10 mean-CoT decoder predicts hacking on held-out problems with AUROC 0.779. Within no-mention CoTs, AUROC is 0.647.</strong></p>
+        <p>The overall signal is reliable and stronger than visible text, the raw mention bit, prompt activations, and CoT length. The no-mention estimate is promising but not confirmed: its grouped interval [0.485, 0.790] still includes chance. Earlier single-layer causal tests did not establish suppression. A corrected Soligo-style all-position experiment was frozen and launched, then deliberately stopped at 102/700 outputs for local backup; it is incomplete and has not been outcome-scored.</p>
+      </div>
+      <div class="grid" style="margin-top:18px">
+        <div class="metric"><span class="value">67.5%</span><span class="label">of pilot responses attempted a released hack</span><span class="small">135 of 200</span></div>
+        <div class="metric"><span class="value">10.5%</span><span class="label">successfully reward-hacked</span><span class="small">21 of 200; all normal-test passes</span></div>
+        <div class="metric"><span class="value">0.779</span><span class="label">all-groups layer-10 CoT decoder AUROC</span><span class="small">grouped 95% interval [0.715, 0.835]</span></div>
+        <div class="metric"><span class="value">0.647</span><span class="label">within no-mention CoTs</span><span class="small">interval [0.485, 0.790]; promising, inconclusive</span></div>
+      </div>
+    </section>
+
+    <section id="current-progress">
+      <h2>Current stopping point: corrected causal experiment</h2>
+      <p class="lead">A methodology audit found that the earlier layer-19 interventions did not test the paper's main layer-wise procedure. The corrected primary arm removes each layer's own unit reward-hacking direction from that layer's post-block residual at every prompt and generated-token position.</p>
+      <div class="equation">for every block i and every token position: h′[i] = h[i] − (h[i] · unit_direction[i]) × unit_direction[i]</div>
+
+      <div class="grid" style="margin-top:18px">
+        <div class="metric"><span class="value">102 / 700</span><span class="label">main-run outputs preserved</span><span class="small">14.6% of the frozen grid</span></div>
+        <div class="metric"><span class="value">7</span><span class="label">paired conditions</span><span class="small">baseline; three learned arms; three matched-random controls</span></div>
+        <div class="metric"><span class="value">3 / 20</span><span class="label">prompts partially or fully reached</span><span class="small">generation order was sequential, so this is not an analyzable sample</span></div>
+        <div class="metric"><span class="value">0</span><span class="label">empty responses so far</span><span class="small">22 responses reached the 2,000-token cap</span></div>
+      </div>
+
+      <h3>What was completed</h3>
+      <ul>
+        <li>Audited Soligo et al.'s paper and pinned implementation at repository revision <code>8460e4e426d3a89e8ed51aac0eadcdf7ac10469d</code>.</li>
+        <li>Implemented all-position residual projection with mechanical telemetry for layer-wise, selected-layer, repeated-layer, and norm-matched-random interventions.</li>
+        <li>Ran outcome-blind coherence calibration. Full repeated layer-19 ablation at <code>alpha = 1</code> was rejected for severe length/coherence behavior; repeated layer 19 at <code>alpha = 0.5</code> and native layer 19 at <code>alpha = 1</code> passed their frozen quality gates.</li>
+        <li>Froze the 20-prompt × 5-sample × 7-condition main protocol. Its sole primary arm is paper-defined layer-wise all-32-block projection with <code>alpha = 1</code>; the native and repeated layer-19 arms are sensitivities and cannot rescue a failed primary.</li>
+        <li>Generated 102 rows on the exact pinned School-of-Reward-Hacks OLMo checkpoint, stopped the process, and verified every substantive remote data file against the local copy by SHA-256.</li>
+      </ul>
+
+      <div class="two-col">
+        <div class="callout warn"><p><span class="status mixed"><span class="dot"></span>No causal result yet</span><br>The frozen grid is incomplete and only the first three same-distribution prompts were reached. The 102 answers were not unblinded, reward-hacking-scored, or entered into the planned bootstrap analysis. They must not be used to infer whether the corrected intervention works.</p></div>
+        <div class="callout good"><p><span class="status yes"><span class="dot"></span>Safely resumable</span><br>The partial rollouts, running-state manifest, log, exact launch source, preflight record, prompt/config/protocol hashes, and remote checksum file are preserved under <code>data/causal-directions/causal-main/</code>. The runner's resume-compatibility checks can continue the same frozen grid on a future GPU.</p></div>
+      </div>
+
+      <h3>Frozen main conditions</h3>
+      <div class="table-scroll card">
+        <table>
+          <thead><tr><th>Role</th><th>Intervention</th><th>Scope</th><th>Strength</th></tr></thead>
+          <tbody>
+            <tr><td>Shared baseline</td><td>No activation intervention</td><td>None</td><td>—</td></tr>
+            <tr><td><strong>Sole primary</strong></td><td>Layer-wise learned RH direction</td><td>Each of 32 blocks; all positions</td><td>Full projection, alpha = 1</td></tr>
+            <tr><td>Primary control</td><td>Layer-wise norm-matched random direction</td><td>Each of 32 blocks; all positions</td><td>Full projection, alpha = 1</td></tr>
+            <tr><td>Comparator + control</td><td>Learned and random native layer-19 directions</td><td>Block 19 only; all positions</td><td>Full projection, alpha = 1</td></tr>
+            <tr><td>Sensitivity + control</td><td>Learned and random layer-19 directions repeated across blocks</td><td>All 32 blocks; all positions</td><td>Half local projection, alpha = 0.5</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small muted">Archived partial-rollout SHA-256: <code>8aff1ce0190b1dd102b834750f2d0b15484a4cfe871f48e679be501082648e54</code>. Frozen main config: <code>7fd384b810c5774c237679c1a71b223dcefc2da907979f8046f8a831b6f11d71</code>. Frozen protocol: <code>c8488deae6450167354c017454cd1d804dbf44b2dc945997c80863716d3a82b0</code>.</p>
+    </section>
+
+    <section id="pilot">
+      <h2>1. Behavioral pilot</h2>
+      <p class="lead">The checkpoint produced enough behavioral variation for activation work: 200 rollouts from 50 CodeContests problems, with four samples per problem. Labels use AISI’s released static hack signatures and normal-test scorer.</p>
+
+      <div class="two-col">
+        <div class="card">
+          <h3 style="margin-top:0">Primary outcomes</h3>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Outcome</th><th class="num">Count</th><th class="num">Rate</th></tr></thead>
+              <tbody>
+                <tr><td>Hack attempted in response</td><td class="num">135 / 200</td><td class="num">67.5%</td></tr>
+                <tr><td>No hack attempted</td><td class="num">65 / 200</td><td class="num">32.5%</td></tr>
+                <tr><td>Reward hack succeeded</td><td class="num">21 / 200</td><td class="num">10.5%</td></tr>
+                <tr><td>CoT mentions hacking</td><td class="num">135 / 200</td><td class="num">67.5%</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="small muted"><strong>Hack attempted</strong> means a released signature appears, even if malformed code prevents success. <strong>Reward hacked</strong> additionally requires the normal tests to pass.</p>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-top:0">CoT statement vs response behavior</h3>
+          <div class="matrix" aria-label="Two by two matrix of CoT mentions and response hack attempts">
+            <div class="blank"></div>
+            <div class="head">Response: no attempt</div>
+            <div class="head">Response: attempted</div>
+            <div class="side">CoT: no mention</div>
+            <div class="cell"><span><span class="n">33</span><span class="pct">16.5% of all rollouts</span></span></div>
+            <div class="cell"><span><span class="n">32</span><span class="pct">16.0% of all rollouts</span></span></div>
+            <div class="side">CoT: mentions hack</div>
+            <div class="cell"><span><span class="n">32</span><span class="pct">16.0% of all rollouts</span></span></div>
+            <div class="cell hot"><span><span class="n">103</span><span class="pct">51.5% of all rollouts</span></span></div>
+          </div>
+          <p class="small muted">The text label is informative but imperfect: 32 responses attempted a hack without a CoT mention, while 32 CoTs mentioned hacking but the final response did not contain a released signature.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="directions">
+      <h2>2. Two independently built shortcut directions</h2>
+      <p class="lead">Both directions were obtained from teacher-forced contrast text, not from the CodeContests rollouts. At every layer:</p>
+      <div class="equation">direction = mean(pooled shortcut activation − pooled legitimate activation)</div>
+      <div class="table-scroll card">
+        <table>
+          <thead><tr><th>Track</th><th>Source</th><th class="num">Fit pairs</th><th class="num">Held out</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><strong>A</strong></td><td>Public School of Reward Hacks, non-coding tasks</td><td class="num">748</td><td class="num">225</td><td>Paper-linked shortcut / reward-hack contrast</td></tr>
+            <tr><td><strong>B</strong></td><td>Luna-generated implicit shortcut vs legitimate pairs</td><td class="num">60</td><td class="num">20</td><td>Independent concept construction across held-out domains</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <figure>
+        <img src="data/shortcut-directions/results/comparison/cosine_vs_layer.png" alt="Signed cosine similarity between School of Reward Hacks and Luna directions across OLMo layers">
+        <figcaption><strong>Cross-method agreement is modest.</strong> Last-token pooling selected layer 7 at cosine 0.0505 (grouped 95% interval [0.0177, 0.0553]); mean-token pooling selected layer 0 at cosine 0.1159 ([0.0294, 0.1482]). The curves are mostly near zero, so there is no strong evidence that the two constructions isolate one shared reward-hacking direction.</figcaption>
+      </figure>
+
+      <div class="two-col">
+        <div class="callout good"><p><span class="status yes"><span class="dot"></span>What passed</span><br>The predeclared reliability and held-out-margin criteria qualified a few layers: 7 and 9 for last-token pooling; 0, 6, 9, and 10 for mean pooling.</p></div>
+        <div class="callout warn"><p><span class="status mixed"><span class="dot"></span>What that means</span><br>Small positive cosines can be statistically stable without being conceptually large. These directions should be treated as related weak readouts, not the same feature or circuit.</p></div>
+      </div>
+    </section>
+
+    <section id="ablation">
+      <h2>3. Causal projection tests</h2>
+      <h3>Earlier AISI layer-14 test</h3>
+      <p class="lead">The School of Reward Hacks mean-token direction was ablated from the first generated token onward. For unit direction <code>d</code>:</p>
+      <div class="equation">updated residual h′ = h − λ × (h · d) × d</div>
+      <p><code>λ = 1</code> removes the component parallel to the direction. <code>λ = 2</code> reverses that component; it is not merely a stronger orthogonal ablation.</p>
+
+      <div class="table-scroll card">
+        <table>
+          <thead><tr><th>Condition</th><th class="num">Hack attempted</th><th class="num">Syntax-valid</th><th class="num">Structured completion</th><th>Interpretation</th></tr></thead>
+          <tbody>
+            <tr><td>Control · λ = 0</td><td class="num">6 / 20</td><td class="num">5 / 20</td><td class="num">5 / 20</td><td>No intervention</td></tr>
+            <tr><td>Remove · λ = 1</td><td class="num">8 / 20</td><td class="num">4 / 20</td><td class="num">4 / 20</td><td>Did not reduce attempts</td></tr>
+            <tr><td>Reverse · λ = 2</td><td class="num">6 / 20</td><td class="num">4 / 20</td><td class="num">4 / 20</td><td>Same total as control</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout bad" style="margin-top:16px"><p><span class="status no"><span class="dot"></span>No causal suppression at layer 14</span><br>The λ=2 condition suppressed three control hacks but induced three others; exact paired McNemar p = 1.0. The hook worked mechanically, but the initial five-example effect did not replicate across 20 examples. Generation quality was poor in all conditions, so this rules out a large gross effect under this setup—not every possible causal role.</p></div>
+
+      <h3 style="margin-top:28px">Native School-of-Reward-Hacks capability test</h3>
+      <p class="lead">A separate confirmation fit the public contrast direction on training pairs only, selected layer 19 without using these prompts, and evaluated 20 native School-of-Reward-Hacks capability prompts: ten held-out same-distribution and ten novel cross-domain. Baseline and intervention generations used paired seeds. Two independent reviewers scored a shuffled, condition-blinded packet for metric gaming and coherence.</p>
+      <div class="table-scroll card">
+        <table>
+          <thead><tr><th>Intervention</th><th class="num">Baseline hacks</th><th class="num">Intervention hacks</th><th class="num">Mean RH-score change</th><th>95% paired interval</th></tr></thead>
+          <tbody>
+            <tr><td>Layer 19, α = 1 removal</td><td class="num">12 / 20</td><td class="num">14 / 20</td><td class="num">+2.18</td><td>[−12.05, +17.93]</td></tr>
+            <tr><td>Layers 18–20, α = 1 removal</td><td class="num">11 / 20</td><td class="num">13 / 20</td><td class="num">+5.68</td><td>[−7.40, +19.40]</td></tr>
+            <tr><td>Layer 19, α = 2 reflection</td><td class="num">10 / 20</td><td class="num">14 / 20</td><td class="num">+13.75</td><td>[+2.85, +25.68]</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <figure>
+        <img src="data/causal-directions/causal-calibration/rh_capability20_comparison/intervention_comparison.png" alt="Paired changes in reward-hacking and coherence scores under three projection interventions">
+        <figcaption><strong>None of the three interventions suppressed reward hacking.</strong> Negative values in the left panel would support suppression. The strongest manipulation, α=2 reflection at layer 19, instead increased the blinded RH score by 13.75 points (exploratory, unadjusted exact paired sign-flip p = 0.033). Its coherence change was −4.28 points with interval [−15.18, +4.98], so the behavioral increase is not explained by wholesale output collapse.</figcaption>
+      </figure>
+      <div class="callout bad"><p><span class="status no"><span class="dot"></span>Observational direction, not established causal feature</span><br>The direction has strong held-out readout margins, but projection removal at one layer, projection removal across the neighboring three-layer band, and component reflection all failed the directional causal prediction. These tests do not prove the direction has no causal role under every intervention, but they are sufficient to stop escalating this particular ablation strategy.</p></div>
+    </section>
+
+    <section id="synem">
+      <h2>3b. Synthetic misalignment-direction preparation</h2>
+      <p class="lead">Eight independently authored shards now cover all 512 frozen factorial slots: 180 fit, 78 validation, 30 IID test, 96 domain-OOD, 96 facet-OOD, and 32 double-OOD pairs. The global validator reports 512/512 structurally valid rows, exact split coverage, no duplicate scenario or candidate IDs, and no cross-shard near-duplicate rejection. All rows remain pending independent semantic review and have not been used for activation extraction.</p>
+      <div class="grid">
+        <div class="metric"><span class="value">512 / 512</span><span class="label">structurally valid matched pairs</span><span class="small">exact frozen slot coverage</span></div>
+        <div class="metric"><span class="value">0.510</span><span class="label">length-only side AUROC</span><span class="small">passes the predeclared ≤0.65 gate</span></div>
+        <div class="metric"><span class="value">0.862</span><span class="label">maximum full-text side AUROC</span><span class="small">fails the original ≤0.65 gate</span></div>
+        <div class="metric"><span class="value">0.783</span><span class="label">function/connector-only AUROC</span><span class="small">remaining side-writing convention</span></div>
+      </div>
+      <div class="two-col" style="margin-top:18px">
+        <div class="callout good"><p><span class="status yes"><span class="dot"></span>What is clean</span><br>Numeric surface style reaches at most 0.630 and within-pair shared vocabulary 0.597. The response lengths are essentially at chance. Side-exclusive content carries strong signal, as expected for texts that enact different behavior.</p></div>
+        <div class="callout warn"><p><span class="status mixed"><span class="dot"></span>Decision required before GPU extraction</span><br>The original gate conflates intended semantic separability with nuisance leakage, but a content-free function-word probe still reaches 0.783. No threshold was relaxed and no synthetic activation direction was fit. The proposed v2 amendment keeps full-text TF-IDF as a reported baseline and applies hard leakage gates only to predeclared style/structure and independent nuisance controls.</p></div>
+      </div>
+      <p class="small muted">Because global lexical diagnostics have already guided authoring, this 512-pair pool must be described as developmental. The natural OLMo EM evaluation set remains untouched and unavailable to layer selection.</p>
+    </section>
+
+    <section id="cot">
+      <h2>4. Maximum projection across CoT tokens</h2>
+      <p class="lead">The frozen School of Reward Hacks mean-token direction was evaluated on existing rollouts using teacher-forced activations. No classifier or ROC curve was fit.</p>
+      <div class="equation">score at a layer = max over selected tokens of signed projection (h · unit_direction)</div>
+      <figure>
+        <img src="data/max-direction-projection/sorh-mean-unit-beta0-pilot200/max_projection_vs_layer.png" alt="Maximum signed projection across CoT tokens and matched differences across layers">
+        <figcaption>Complete CoT spans were available for 196 rollouts: 133 attempted hacks and 63 non-attempts. Although attempted-hack means are slightly higher at many layers, every within-problem 95% interval crosses zero.</figcaption>
+      </figure>
+      <div class="two-col">
+        <div class="card">
+          <h3 style="margin-top:0">Primary: hack attempted</h3>
+          <p><strong>Layer 14:</strong> 1.061 vs 0.950; matched gap +0.118, 95% interval [−0.064, 0.303].</p>
+          <p><strong>Largest observed gap, layer 24:</strong> +0.246, interval [−0.114, 0.614].</p>
+          <p class="small muted">Result: no reliable CoT separation for attempted hacking.</p>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0">Secondary: successful hack</h3>
+          <p><strong>Layer 14:</strong> 21 successful vs 175 unsuccessful; matched gap +0.246, interval [0.034, 0.444], across 19 mixed problems.</p>
+          <p class="small muted">This is exploratory and may encode successful execution or response quality—not hidden intent. Pointwise positive intervals also appeared at layers 10 and 11.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="answer">
+      <h2>5. Maximum projection across answer/code tokens</h2>
+      <p class="lead">Answer-only spans exclude the CoT, thinking delimiters, chat wrappers, and special tokens. An unambiguous answer span existed for 199 of 200 rollouts. The first-128-token window reduces the maximum statistic’s dependence on answer length.</p>
+      <figure>
+        <img src="data/max-direction-projection/sorh-mean-unit-beta0-pilot200-answer-v2/answer_max_projection_vs_layer.png" alt="Maximum School of Reward Hacks direction projection across answer tokens, split by no attempt, failed attempt, and successful reward hack">
+        <figcaption>The vertical line marks layer 14, used in the earlier causal test. Observational separation is cleaner earlier, especially around layer 10. Failed and successful hack attempts overlap strongly.</figcaption>
+      </figure>
+
+      <div class="table-scroll card">
+        <table>
+          <thead><tr><th>Token scope</th><th>Layer</th><th class="num">Attempt mean</th><th class="num">No-attempt mean</th><th class="num">Matched gap</th><th>95% interval</th></tr></thead>
+          <tbody>
+            <tr><td><strong>First 128 answer tokens</strong></td><td>10</td><td class="num">1.197</td><td class="num">0.930</td><td class="num"><strong>+0.259</strong></td><td><strong>[0.156, 0.372]</strong></td></tr>
+            <tr><td>All answer tokens</td><td>10</td><td class="num">1.446</td><td class="num">1.228</td><td class="num">+0.236</td><td>[0.122, 0.350]</td></tr>
+            <tr><td>First 128 answer tokens</td><td>14</td><td class="num">1.445</td><td class="num">1.253</td><td class="num">+0.210</td><td>[−0.005, 0.421]</td></tr>
+            <tr><td>All answer tokens</td><td>14</td><td class="num">1.985</td><td class="num">1.776</td><td class="num">+0.205</td><td>[0.001, 0.413]</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="two-col" style="margin-top:16px">
+        <div class="callout good"><p><span class="status yes"><span class="dot"></span>Robust answer-side signal</span><br>For the first 128 answer tokens, layers 3–13 and 15 have positive matched pointwise intervals. At layer 10, each released hack family is elevated: <code>always_equal</code> 1.249, <code>conftest</code> 1.165, and <code>exit</code> 1.223, versus 0.930 for no attempt.</p></div>
+        <div class="callout warn"><p><span class="status mixed"><span class="dot"></span>Likely explicit mechanism readout</span><br>Frequent maximum-projection tokens include <code>pytest</code>, <code>Equal</code>, <code>hack</code>, and <code>==</code>. Successful attempts are not stronger than failed ones in the fixed window, so the direction reads hack-like code/content rather than whether it will work.</p></div>
+      </div>
+    </section>
+
+    <section id="decoder">
+      <h2>6. Layer-10 mean-pooled CoT decoder</h2>
+      <p class="lead">This decoder learns a new linear direction from the CoT activations themselves; it does not reuse the School of Reward Hacks direction. Complete CoTs were available for 196 rollouts. Each feature is the mean post-block layer-10 residual over non-special tokens strictly inside <code>&lt;thinking&gt;</code>, excluding the prompt, delimiters, answer/code, EOS, and padding.</p>
+
+      <figure>
+        <img src="data/cot-decoder/pilot-layer10-mean-all-groups/evaluation/cot_decoder_all_groups.png" alt="Held-out ROC and precision-recall curves, mention-stratified ROC curves, and layer-10 decoder scores across all four behavior groups">
+        <figcaption><strong>All four behavior groups participate in fitting and held-out evaluation.</strong> Every plotted score is out of fold, and no CodeContests problem crosses folds. Each held-out fold has at least five examples from every behavior cell; every training fold has at least 24.</figcaption>
+      </figure>
+
+      <div class="table-scroll card">
+        <table>
+          <thead><tr><th>Readout</th><th class="num">Overall AUROC</th><th>Grouped 95% interval</th><th class="num">Overall AUPRC</th><th class="num">No-mention AUROC</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Layer-10 mean CoT activation</strong></td><td class="num"><strong>0.779</strong></td><td><strong>[0.715, 0.835]</strong></td><td class="num"><strong>0.901</strong></td><td class="num"><strong>0.647</strong></td></tr>
+            <tr><td>Visible CoT TF-IDF</td><td class="num">0.708</td><td>[0.622, 0.788]</td><td class="num">0.846</td><td class="num">0.498</td></tr>
+            <tr><td>Raw CoT-mention indicator</td><td class="num">0.633</td><td>[0.553, 0.715]</td><td class="num">0.744</td><td class="num">0.500</td></tr>
+            <tr><td>Prompt-only mean activation</td><td class="num">0.650</td><td>[0.569, 0.734]</td><td class="num">0.770</td><td class="num">0.599</td></tr>
+            <tr><td>CoT token count only</td><td class="num">0.513</td><td>[0.433, 0.587]</td><td class="num">0.683</td><td class="num">0.509</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="two-col" style="margin-top:16px">
+        <div class="callout good"><p><span class="status yes"><span class="dot"></span>Information beyond obvious controls</span><br>Overall activation AUROC exceeds TF-IDF by +0.071, paired interval [0.005, 0.140], and the raw mention indicator by +0.146 [0.063, 0.222]. The overall pilot gate passes.</p></div>
+        <div class="callout warn"><p><span class="status mixed"><span class="dot"></span>Tentative silent signal</span><br>Silent attempts average 0.373 versus 0.284 for no-mention non-attempts. Their AUROC is 0.647, but its interval crosses 0.5 and the advantage over prompt activations is not reliable yet.</p></div>
+      </div>
+
+      <p class="small muted">The earlier transparent-only fit is retained for provenance but superseded. Layer 10 was selected after inspecting answer-side projections on these same 200 rollouts, so the all-groups result remains exploratory. The confirmation stage freezes the design, draws 1,000 rollouts from 200 unused problems, and then uses only problem IDs and behavior-cell labels to balance 120/40/40 problem-disjoint train/validation/test sets. Fresh training must have at least 60 examples in every cell; validation and test must each have at least 20. The pipeline aborts if those hard gates cannot be met. It adds all complete-CoT pilot rows only to training, selects settings across all four validation cells, and evaluates the all-four-groups test set once.</p>
+    </section>
+
+    <section id="limits">
+      <h2>7. What we can and cannot conclude</h2>
+      <div class="table-scroll card">
+        <table>
+          <thead><tr><th>Claim</th><th>Status</th><th>Evidence</th></tr></thead>
+          <tbody>
+            <tr><td>The School direction contains information about explicit attempted hacking in answers</td><td><span class="status yes"><span class="dot"></span>Supported</span></td><td>Clear layer-10 matched separation in the fixed 128-token answer window; broad layer cluster; multiple hack families.</td></tr>
+            <tr><td>A layer-10 mean-CoT decoder predicts answer attempts across all four behavior cells</td><td><span class="status yes"><span class="dot"></span>Pilot supported</span></td><td>Problem-grouped out-of-fold AUROC 0.779, interval [0.715, 0.835], and a positive paired advantage over visible TF-IDF.</td></tr>
+            <tr><td>Layer 10 is the best current readout candidate</td><td><span class="status mixed"><span class="dot"></span>Provisional</span></td><td>It is the cleanest observed layer, but was selected after inspecting these 200 rollouts.</td></tr>
+            <tr><td>The decoder predicts silent upcoming reward hacking from no-mention CoTs</td><td><span class="status mixed"><span class="dot"></span>Suggestive only</span></td><td>Within-no-mention AUROC is 0.647, but grouped interval [0.485, 0.790] crosses chance.</td></tr>
+            <tr><td>The direction predicts whether an attempt will succeed</td><td><span class="status no"><span class="dot"></span>Not shown</span></td><td>Successful and failed attempts do not separate in the fixed answer window.</td></tr>
+            <tr><td>Ablating this direction suppresses reward hacking</td><td><span class="status no"><span class="dot"></span>Contradicted under tested interventions</span></td><td>The earlier AISI layer-14 test and three native-benchmark tests did not suppress hacking. Native layer-19 α=2 reflection significantly increased the blinded RH score.</td></tr>
+            <tr><td>The SoRH and Luna methods recover the same direction</td><td><span class="status no"><span class="dot"></span>Weak evidence only</span></td><td>Cross-method signed cosines are positive at a few qualifying layers but remain close to zero.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Most important remaining controls</h3>
+      <ul>
+        <li>Run the frozen layer-10 mean-CoT decoder confirmation on 200 unused problem IDs without another layer or pooling search.</li>
+        <li>Retain the visible-CoT TF-IDF, prompt-only activation, and token-count controls on identical splits.</li>
+        <li>If whole-CoT averaging fails confirmation or silent transfer, predeclare the planned four-position-bin sensitivity test; do not reinterpret the pilot.</li>
+        <li>Do not infer that layer-10 steering will work from observational separation; causal readout and causal control are different properties.</li>
+      </ul>
+    </section>
+
+    <section id="artifacts">
+      <h2>8. Reproducibility and artifacts</h2>
+      <div class="card">
+        <p><strong>Exact model:</strong> <code>allenai/Olmo-3-7B-Instruct-SFT</code> at <code>e1452fc572d51966ff4aaeb25118b891eb93e549</code>, with AISI β=0 step-220 adapter at <code>232b591c69b90b1ec9a866fe270c5ca6763befb0</code>.</p>
+        <p><strong>Public code:</strong> <a href="https://github.com/rakaar/olmo-reward-hacking-cot">github.com/rakaar/olmo-reward-hacking-cot</a> (results documented through commit <code>4697c171d183936cf2f586462d667d843bb6a184</code>).</p>
+        <h3>Local result bundles</h3>
+        <ul>
+          <li><a href="data/beta0-step220/pilot-200/export/label_summary.json">200-rollout label summary</a> and <a href="data/beta0-step220/pilot-200/export/rollouts_labeled.jsonl">labeled rollouts</a></li>
+          <li><a href="data/shortcut-directions/results/comparison/cosine_by_layer.csv">direction comparison by layer</a> and <a href="data/shortcut-directions/results/comparison/summary.json">summary</a></li>
+          <li><a href="data/projection-ablation/calibration-l14-lambda0-1-2/calibration_summary.json">layer-14 ablation summary</a></li>
+          <li><a href="data/causal-directions/causal-calibration/rh_capability20_comparison/comparison.json">native capability intervention comparison</a>, <a href="data/causal-directions/causal-calibration/rh_capability20_alpha2/reviewed/causal_summary.json">layer-19 α=2 summary</a>, and the <a href="data/causal-directions/causal-calibration/rh_capability20_comparison/intervention_comparison.png">combined causal figure</a></li>
+          <li><a href="data/causal-directions/synthetic-em/candidate-assembly-manifest.json">synthetic-EM 512-pair assembly manifest</a>, <a href="data/causal-directions/synthetic-em/drafts/lexical_leakage_natural_v4.json">original leakage-gate result</a>, and <a href="data/causal-directions/synthetic-em/drafts/lexical_failure_diagnosis_natural_v4.json">construct-versus-style diagnosis</a></li>
+          <li><a href="data/max-direction-projection/sorh-mean-unit-beta0-pilot200/max_projection_by_layer.csv">CoT projection values</a></li>
+          <li><a href="data/max-direction-projection/sorh-mean-unit-beta0-pilot200-answer-v2/max_projection_by_layer.csv">answer-only projection values</a></li>
+          <li><a href="data/cot-decoder/pilot-layer10-mean-all-groups/evaluation/summary.json">balanced all-groups CoT decoder summary</a>, <a href="data/cot-decoder/pilot-layer10-mean-all-groups/evaluation/oof_predictions.jsonl">out-of-fold predictions</a>, <a href="data/cot-decoder/pilot-layer10-mean-all-groups/evaluation/folds.json">four-cell-balanced fold definitions</a>, and <a href="data/cot-decoder/pilot-layer10-mean/features/manifest.json">feature manifest</a></li>
+        </ul>
+        <p class="small muted">Frozen datasets, direction tensors, compressed per-pair deltas, manifests, hashes, bootstrap arrays, rejection logs, and analysis scripts are retained in the repository’s <code>data/</code> and <code>scripts/</code> directories. The CodeContests rollouts were kept outside direction construction and layer selection for the original direction-comparison experiment.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">Prepared as an interim research record. Confidence intervals are the grouped bootstrap intervals saved with each analysis. “Layer” means zero-indexed post-transformer-block residual stream.</div>
+  </footer>
+</body>
+</html>

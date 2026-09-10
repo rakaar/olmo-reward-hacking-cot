@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "model": {
+    "base_model": "longtermrisk/OLMo-3-7B-school-of-reward-hacks-sft",
+    "base_revision": "438a3f85d1d19d9cf5a4bd8e341e99ae1dcb80b3",
+    "device": "cuda",
+    "dtype": "bfloat16",
+    "expected_layers": 32,
+    "expected_hidden_size": 4096
+  },
+  "generation": {
+    "samples_per_prompt": 2,
+    "do_sample": true,
+    "temperature": 1.0,
+    "top_p": 1.0,
+    "max_new_tokens": 2048,
+    "seed": 42
+  },
+  "directions": {
+    "d_RH": {
+      "artifact": "../../data/causal-directions/rh/pilot_extraction/directions.npz",
+      "selection": "../../data/causal-directions/rh/pilot_extraction/layer_selection.json"
+    },
+    "d_synEM": {
+      "artifact": "../../data/causal-directions/synthetic-em/directions.npz",
+      "selection": "../../data/causal-directions/synthetic-em/layer_selection.json"
+    },
+    "nuisance_RH": {
+      "artifact": "../../data/causal-directions/nuisance-rh/directions.npz",
+      "selection": "../../data/causal-directions/nuisance-rh/layer_selection.json"
+    },
+    "nuisance_EM": {
+      "artifact": "../../data/causal-directions/nuisance-em/directions.npz",
+      "selection": "../../data/causal-directions/nuisance-em/layer_selection.json"
+    }
+  },
+  "conditions": [
+    {
+      "name": "baseline"
+    },
+    {
+      "name": "rh_single",
+      "direction": "d_RH",
+      "scope": "single",
+      "alpha": 1.0,
+      "projection": "uncentered"
+    },
+    {
+      "name": "rh_band3",
+      "direction": "d_RH",
+      "scope": "band3",
+      "alpha": 1.0,
+      "projection": "uncentered"
+    },
+    {
+      "name": "rh_qualified",
+      "direction": "d_RH",
+      "scope": "qualified",
+      "alpha": 1.0,
+      "projection": "uncentered"
+    },
+    {
+      "name": "rh_all32_stress",
+      "direction": "d_RH",
+      "scope": "all32",
+      "alpha": 1.0,
+      "projection": "uncentered"
+    },
+    {
+      "name": "synem_single",
+      "direction": "d_synEM",
+      "scope": "single",
+      "alpha": 1.0,
+      "projection": "uncentered"
+    },
+    {
+      "name": "synem_band3",
+      "direction": "d_synEM",
+      "scope": "band3",
+      "alpha": 1.0,
+      "projection": "uncentered"
+    },
+    {
+      "name": "rh_matched_nuisance",
+      "direction": "nuisance_RH",
+      "scope_source": "d_RH",
+      "scope": "single",
+      "alpha": 1.0,
+      "projection": "uncentered"
+    },
+    {
+      "name": "em_matched_nuisance",
+      "direction": "nuisance_EM",
+      "scope_source": "d_synEM",
+      "scope": "single",
+      "alpha": 1.0,
+      "projection": "uncentered"
+    }
+  ]
+}

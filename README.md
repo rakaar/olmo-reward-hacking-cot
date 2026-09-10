@@ -28,6 +28,35 @@ The public AISI collection currently exposes only the step-220 beta=0 OLMo-7B
 adapter, so the pilot first determines whether it already has a useful mixture
 of reward-hack and non-reward-hack rollouts.
 
+## Corrected causal-ablation stopping point
+
+A methodology audit of Soligo et al., *Convergent Linear Representations of
+Emergent Misalignment*, motivated a corrected all-position causal experiment.
+The sole primary condition uses the paper-defined layer-wise intervention: at
+each of OLMo's 32 post-block residual streams, project out that layer's own
+unit reward-hacking direction at every prompt and generated-token position.
+
+The frozen main grid contains 20 prompts, five paired samples, and seven
+conditions (700 outputs): a shared baseline, three learned-direction arms, and
+one norm-matched-random control for each learned arm. Outcome-blind calibration
+accepted native layer-19 projection at alpha 1 and repeated layer-19 projection
+at alpha 0.5; full repeated layer-19 projection at alpha 1 was rejected for
+poor generation quality.
+
+The main run was deliberately interrupted and archived on 11 September 2026
+after 102/700 outputs. Only the first three same-distribution prompts had been
+reached, so the partial rows are not an analyzable causal sample. They have not
+been unblinded, reward-hacking-scored, or entered into the planned bootstrap
+analysis. The local archive is at
+`data/causal-directions/causal-main/rh_corrected_allposition_main20x5/`; its
+`rollouts.jsonl` SHA-256 is
+`8aff1ce0190b1dd102b834750f2d0b15484a4cfe871f48e679be501082648e54`.
+The exact launch source, frozen config/protocol, preflight record, log, running-
+state manifest, and remote checksum file are preserved for a future resume.
+
+The human-readable status report is
+`olmo_reward_hacking_results_so_far.html`.
+
 ## Shortcut-direction experiment
 
 The two independent shortcut directions are now frozen. This stage uses only
